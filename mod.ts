@@ -1,8 +1,10 @@
-import { asset, ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
 import type { Plugin } from "$fresh/server.ts";
 import type { PluginRoute } from "$fresh/src/server/types.ts";
-import { decode, GIF, Image } from "imagescript/mod.ts";
 import { join, resolve, toFileUrl } from "$std/path/mod.ts";
+import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
+import { decode, GIF, Image } from "imagescript/mod.ts";
+
+const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
 
 export interface ImagesPluginOptions {
   publicPath?: string;
@@ -22,6 +24,13 @@ export async function handleImageRequest<T extends string>(
   publicPath: T,
   localPath?: string,
 ): Promise<Response> {
+  const res = await CACHE.match(req);
+
+  if (res) {
+    res.headers.set("x-cache-hit", "true");
+    return res;
+  }
+
   const url = new URL(req.url);
   const srcPath = url.pathname.replace(`${publicPath}/`, "");
 
@@ -34,8 +43,8 @@ export async function handleImageRequest<T extends string>(
   const transformFns = url.searchParams.getAll("fn");
 
   try {
-    const res = await fetch(resourcePath);
-    const data = await res.arrayBuffer();
+    const resource = await fetch(resourcePath);
+    const data = await resource.arrayBuffer();
     const img = await transformFns.reduce(async (acc, xfn) => {
       if (xfn in transformers) {
         return await transformers[xfn](await acc, req);
@@ -52,12 +61,16 @@ export async function handleImageRequest<T extends string>(
       Math.min(isGif ? 30 : 3, Math.max(1, quality)),
     );
 
-    return new Response(buffer, {
+    const res = new Response(buffer, {
       headers: {
         "content-type": isGif ? "image/gif" : "image/png",
         // "cache-control": "public, max-age=31536000, immutable",
       },
     });
+
+    CACHE.put(req, res.clone());
+
+    return res;
   } catch (err) {
     return new Response(`Failed fetching: ${resourcePath}: ${err.message}`, {
       status: 500,
