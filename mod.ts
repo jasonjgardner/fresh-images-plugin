@@ -6,9 +6,21 @@ import { decode, GIF, Image } from "imagescript/mod.ts";
 
 const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
 
+/**
+ * Options for the Images plugin
+ */
 export interface ImagesPluginOptions {
+  /**
+   * The route exposed to the client
+   */
   publicPath?: string;
+  /**
+   * The absolute path to the image file directory
+   */
   realPath?: string;
+  /**
+   * A map of image transformation functions
+   */
   transformers?: Record<
     string,
     (
@@ -18,23 +30,29 @@ export interface ImagesPluginOptions {
   >;
 }
 
+/**
+ * Handle an image transformation request.
+ * @param transformers Available image transformations
+ * @param req HTTP request
+ * @param publicPath Route exposed to the client
+ * @param localPath Optional path to the local image directory. Defaults to root.
+ * @returns Response containing the transformed image or an error message
+ */
 export async function handleImageRequest<T extends string>(
   transformers: ImagesPluginOptions["transformers"] = {},
   req: Request,
   publicPath: T,
   localPath?: string,
 ): Promise<Response> {
-  const res = await CACHE.match(req);
+  const cached = await CACHE.match(req);
 
-  if (res) {
-    res.headers.set("x-cache-hit", "true");
-    return res;
+  if (cached) {
+    cached.headers.set("x-cache-hit", "true");
+    return cached;
   }
 
   const url = new URL(req.url);
   const srcPath = url.pathname.replace(`${publicPath}/`, "");
-
-  // TODO: Add support for external image sources
 
   const resourcePath = toFileUrl(
     join(resolve(Deno.cwd(), localPath ?? "./"), srcPath),
@@ -45,6 +63,8 @@ export async function handleImageRequest<T extends string>(
   try {
     const resource = await fetch(resourcePath);
     const data = await resource.arrayBuffer();
+
+    // Apply each transformation function in order
     const img = await transformFns.reduce(async (acc, xfn) => {
       if (xfn in transformers) {
         return await transformers[xfn](await acc, req);
@@ -64,7 +84,6 @@ export async function handleImageRequest<T extends string>(
     const res = new Response(buffer, {
       headers: {
         "content-type": isGif ? "image/gif" : "image/png",
-        // "cache-control": "public, max-age=31536000, immutable",
       },
     });
 
