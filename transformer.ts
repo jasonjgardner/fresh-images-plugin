@@ -4,6 +4,12 @@ import {
   Image,
 } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
+export const KEYMAP = {
+  degrees: "d",
+  height: "h",
+  width: "w",
+} as const;
+
 /**
  * Resize an image to a given width and/or height.
  * @param img Image to resize
@@ -36,9 +42,11 @@ import {
 export function resize(img: Image | GIF, req: Request): Image | GIF {
   const url = new URL(req.url);
 
-  const width = url.searchParams.get("w") ?? url.searchParams.get("width") ??
+  const width = url.searchParams.get("width") ??
+    url.searchParams.get(KEYMAP.width) ??
     Image.RESIZE_AUTO;
-  const height = url.searchParams.get("h") ?? url.searchParams.get("height") ??
+  const height = url.searchParams.get("height") ??
+    url.searchParams.get(KEYMAP.height) ??
     Image.RESIZE_AUTO;
 
   // FIXME: Height must be specified when transforming a GIF
@@ -88,7 +96,8 @@ export function resize(img: Image | GIF, req: Request): Image | GIF {
 export function rotate(img: Image | GIF, req: Request): Image | GIF {
   const url = new URL(req.url);
 
-  const degrees = url.searchParams.get("d") ?? url.searchParams.get("degrees");
+  const degrees = url.searchParams.get("degrees") ??
+    url.searchParams.get(KEYMAP.degrees);
 
   if (img instanceof GIF) {
     // Rotate each frame and reconstruct the GIF
