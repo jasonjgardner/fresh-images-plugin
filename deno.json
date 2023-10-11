@@ -1,6 +1,7 @@
 {
     "imports": {
         "$std/": "https://deno.land/std@0.203.0/",
-        "$fresh/": "https://deno.land/x/fresh@1.5.1/"
+        "$fresh/": "https://deno.land/x/fresh@1.5.1/",
+        "imagescript/": "https://deno.land/x/imagescript@1.2.15/"
     }
 }
