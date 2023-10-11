@@ -17,7 +17,7 @@
     "@preact/signals": "https://esm.sh/*@preact/signals@1.2.1",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.0",
     "$std/": "https://deno.land/std@0.193.0/",
-    "fresh-images/": "../",
+    "fresh_images/": "../",
     "imagescript/": "https://deno.land/x/imagescript@1.2.15/"
   },
   "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" }

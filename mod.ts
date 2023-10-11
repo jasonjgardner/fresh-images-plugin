@@ -94,7 +94,7 @@ export async function handleImageRequest<T extends string>(
 
     return res;
   } catch (err) {
-    return new Response(`Failed fetching: ${resourcePath}: ${err.message}`, {
+    return new Response(err.message, {
       status: 500,
     });
   }
