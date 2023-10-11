@@ -4,8 +4,6 @@ import { join, resolve, toFileUrl } from "$std/path/mod.ts";
 import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
 import { decode, GIF, Image } from "imagescript/mod.ts";
 
-const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
-
 /**
  * Options for the Images plugin
  */
@@ -29,6 +27,8 @@ export interface ImagesPluginOptions {
     ) => Image | GIF | Promise<Image | GIF>
   >;
 }
+
+const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
 
 /**
  * Handle an image transformation request.

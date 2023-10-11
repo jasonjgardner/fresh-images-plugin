@@ -1,1 +1,0 @@
-import { createRoutes } from "./mod.ts";
