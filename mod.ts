@@ -11,7 +11,7 @@ export interface ImagesPluginOptions {
   /**
    * The route exposed to the client
    */
-  publicPath?: string;
+  route?: string;
   /**
    * The absolute path to the image file directory
    */
@@ -28,6 +28,9 @@ export interface ImagesPluginOptions {
   >;
 }
 
+/**
+ * Cache for transformed images
+ */
 const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
 
 /**
@@ -120,7 +123,7 @@ export async function handleImageRequest<T extends string>(
  * ```
  */
 export default function ImagesPlugin({
-  publicPath = "/images",
+  route = "/images",
   realPath = "./static/image",
   transformers = {},
 }: ImagesPluginOptions): Plugin {
@@ -130,12 +133,12 @@ export default function ImagesPlugin({
 
   const routes: PluginRoute[] = [
     {
-      path: `${publicPath}/[fileName]`,
+      path: `${route}/[fileName]`,
       handler: async (req) =>
         await handleImageRequest(
           transformers,
           req,
-          publicPath,
+          route,
           realPath,
         ),
     },

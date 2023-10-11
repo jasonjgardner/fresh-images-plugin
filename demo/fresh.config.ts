@@ -1,11 +1,14 @@
 import { defineConfig } from "$fresh/server.ts";
-import ImagesPlugin from "fresh-images/mod.ts";
-import { resize, rotate } from "fresh-images/transformer.ts";
+import ImagesPlugin from "https://deno.land/x/fresh_images/mod.ts";
+import {
+  resize,
+  rotate,
+} from "https://deno.land/x/fresh_images/transformer.ts";
 
 export default defineConfig({
   plugins: [
     ImagesPlugin({
-      publicPath: "/img",
+      route: "/img",
       transformers: { resize, rotate },
     }),
   ],
