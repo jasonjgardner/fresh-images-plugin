@@ -12,14 +12,12 @@ Modify the import map in your Fresh project to include
 [ImageScript](https://github.com/matmen/ImageScript) and the
 [Fresh images plugin](https://deno.land/x/fresh_images/).
 
-Example `deno.json` file:
+`deno.json`:
 
 ```json
 {
   "imports": {
-    "$fresh/": "https://deno.land/x/fresh@1.5.1/",
-    ...
-    "fresh-images/": "https://deno.land/x/fresh_images/",
+    "fresh_images/": "https://deno.land/x/fresh_images/",
     "imagescript/": "https://deno.land/x/imagescript@1.2.15/"
   }
 }
@@ -29,11 +27,8 @@ Include the plugin and transformation functions in your `fresh.config.ts` file.
 
 ```ts
 import { defineConfig } from "$fresh/server.ts";
-import ImagesPlugin from "https://deno.land/x/fresh_images/mod.ts";
-import {
-  resize,
-  rotate,
-} from "https://deno.land/x/fresh_images/transformer.ts";
+import ImagesPlugin from "fresh_images/mod.ts";
+import { resize, rotate } from "fresh_images/transformer.ts";
 
 export default defineConfig({
   plugins: [
