@@ -1,12 +1,12 @@
 import type { Plugin } from "$fresh/server.ts";
 import type { PluginRoute } from "$fresh/src/server/types.ts";
-import { join, resolve, toFileUrl } from "$std/path/mod.ts";
-import { decode } from "imagescript/mod.ts";
 import type {
   ImagesPluginOptions,
   TransformFn,
   TransformRoute,
 } from "./src/types.ts";
+import { join, resolve, toFileUrl } from "$std/path/mod.ts";
+import { decode } from "imagescript/mod.ts";
 import { CACHE, getImageResponse, getParam } from "./src/_utils.ts";
 export { extendKeyMap, transform } from "./src/_utils.ts";
 export { getParam };
