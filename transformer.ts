@@ -1,14 +1,14 @@
-import {
-  Frame,
-  GIF,
-  Image,
-} from "https://deno.land/x/imagescript@1.2.15/mod.ts";
+import { Frame, GIF, Image } from "imagescript/mod.ts";
 
-export const KEYMAP = {
+export const KEYMAP: Record<string, string> = {
   degrees: "d",
   height: "h",
   width: "w",
-} as const;
+  cropWidth: "cw",
+  cropHeight: "ch",
+  cropStartX: "cx",
+  cropStartY: "cy",
+};
 
 /**
  * Resize an image to a given width and/or height.
@@ -18,8 +18,8 @@ export const KEYMAP = {
  * @example
  * ```ts
  * import { defineConfig } from "$fresh/server.ts";
- * import ImagesPlugin from "fresh-images/mod.ts";
- * import { resize } from "fresh-images/transformer.ts";
+ * import ImagesPlugin from "fresh_images/mod.ts";
+ * import { resize } from "fresh_images/transformer.ts";
  *
  * export default defineConfig({
  * plugins: [
@@ -75,8 +75,8 @@ export function resize(img: Image | GIF, req: Request): Image | GIF {
  * @example
  * ```ts
  * import { defineConfig } from "$fresh/server.ts";
- * import ImagesPlugin from "fresh-images/mod.ts";
- * import { rotate } from "fresh-images/transformer.ts";
+ * import ImagesPlugin from "fresh_images/mod.ts";
+ * import { rotate } from "fresh_images/transformer.ts";
  *
  * export default defineConfig({
  *  plugins: [
@@ -115,4 +115,65 @@ export function rotate(img: Image | GIF, req: Request): Image | GIF {
   }
 
   return img.rotate(Number(degrees)) as Image;
+}
+
+/**
+ * Crop an image to a specified area.
+ * @param img Image to crop
+ * @param req URL request containing transformation parameters
+ * @returns Cropped image
+ * @example
+ * ```ts
+ * import { defineConfig } from "$fresh/server.ts";
+ * import ImagesPlugin from "fresh_images/mod.ts";
+ * import { crop } from "fresh_images/transformer.ts";
+ *
+ * export default defineConfig({
+ *  plugins: [
+ *    ImagesPlugin({
+ *      publicPath: "/img",
+ *      transformers: { crop },
+ *    }),
+ *  ],
+ * });
+ * ```
+ * @example
+ * ```html
+ * <img src="/img/meow.jpg?fn=crop&cx=100&cy=100&cw=100&ch=100" alt="Cropped to 100px by 100px starting at 100px by 100px" />
+ * ```
+ */
+export function crop(img: Image | GIF, req: Request): Image | GIF {
+  const url = new URL(req.url);
+
+  // TODO: Support keywords for crop start area (e.g. "center")
+
+  const x = url.searchParams.get("cropStartX") ??
+    url.searchParams.get(KEYMAP.cropStartX) ?? 0;
+  const y = url.searchParams.get("cropStartY") ??
+    url.searchParams.get(KEYMAP.cropStartY) ?? 0;
+
+  const width = url.searchParams.get("cropWidth") ??
+    url.searchParams.get(KEYMAP.cropWidth) ??
+    Image.RESIZE_AUTO;
+  const height = url.searchParams.get("cropHeight") ??
+    url.searchParams.get(KEYMAP.cropHeight) ??
+    Image.RESIZE_AUTO;
+
+  if (img instanceof GIF) {
+    // Crop each frame and reconstruct the GIF
+    const frames: Frame[] = [];
+
+    img.forEach((imgFrame) => {
+      const frame = new Frame(Number(width), Number(height));
+      frame.bitmap =
+        imgFrame.crop(Number(x), Number(y), Number(width), Number(height))
+          .bitmap;
+
+      frames.push(frame);
+    });
+
+    return new GIF(frames);
+  }
+
+  return img.crop(Number(x), Number(y), Number(width), Number(height));
 }
