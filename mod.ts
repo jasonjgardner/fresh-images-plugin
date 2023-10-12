@@ -2,36 +2,13 @@ import type { Plugin } from "$fresh/server.ts";
 import type { PluginRoute } from "$fresh/src/server/types.ts";
 import { join, resolve, toFileUrl } from "$std/path/mod.ts";
 import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
-import { decode, GIF, Image } from "imagescript/mod.ts";
-
-/**
- * Options for the Images plugin
- */
-export interface ImagesPluginOptions {
-  /**
-   * The route exposed to the client
-   */
-  route?: string;
-  /**
-   * The absolute path to the image file directory
-   */
-  realPath?: string;
-  /**
-   * A map of image transformation functions
-   */
-  transformers?: Record<
-    string,
-    (
-      img: Image | GIF,
-      req: Request,
-    ) => Image | GIF | Promise<Image | GIF>
-  >;
-}
+import { decode, GIF } from "imagescript/mod.ts";
+import type { ImagesPluginOptions } from "./src/types.ts";
 
 /**
  * Cache for transformed images
  */
-const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
+const CACHE = await caches.open(`fresh_images-${ASSET_CACHE_BUST_KEY}`);
 
 /**
  * Handle an image transformation request.
@@ -109,8 +86,8 @@ export async function handleImageRequest<T extends string>(
  * @example
  * ```ts
  * import { defineConfig } from "$fresh/server.ts";
- * import ImagesPlugin from "fresh-images/mod.ts";
- * import { resize } from "fresh-images/transformer.ts";
+ * import ImagesPlugin from "fresh_images/mod.ts";
+ * import { resize } from "fresh_images/transformer.ts";
  *
  * export default defineConfig({
  *   plugins: [
@@ -145,7 +122,7 @@ export default function ImagesPlugin({
   ];
 
   return {
-    name: "fresh-images",
+    name: "fresh_images",
     routes,
   };
 }
