@@ -1,5 +1,11 @@
+import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
 import { Frame, GIF, Image } from "imagescript/mod.ts";
 import { KEYMAP } from "./transformers/_keymap.ts";
+
+/**
+ * Cache for transformed images
+ */
+export const CACHE = await caches.open(`fresh_images-${ASSET_CACHE_BUST_KEY}`);
 
 /**
  * Get a parameter from a URL or request.
@@ -57,4 +63,57 @@ export function extendKeyMap(
   keymap: Record<string, string>,
 ): typeof KEYMAP {
   return { ...KEYMAP, ...keymap };
+}
+
+async function getResponse(
+  img: Image | GIF,
+  qualityParam: number,
+  returnJpeg: boolean,
+): Promise<Response> {
+  const isGif = img instanceof GIF;
+  const headers = {
+    "content-type": isGif ? "image/gif" : "image/png",
+  };
+
+  if (returnJpeg) {
+    headers["content-type"] = "image/jpeg";
+    const quality = Math.min(100, Math.max(1, qualityParam));
+
+    const buffer = await (isGif ? img[0] : img).encodeJPEG(quality);
+    return new Response(buffer, {
+      headers,
+    });
+  }
+
+  const quality = Math.min(isGif ? 30 : 3, Math.max(1, qualityParam));
+  const buffer = await img.encode(quality);
+
+  return new Response(buffer, {
+    headers,
+  });
+}
+
+/**
+ * Get a response for an image request, optionally caching the response.
+ * @param img Image buffer
+ * @param req Request with transformation parameters
+ * @param jpeg Whether to return a JPEG instead of a PNG or GIF. Only the first frame of a GIF will be returned, when this is true.
+ * @returns Image response with headers.
+ */
+export async function getImageResponse(
+  img: Image | GIF,
+  req: Request,
+  jpeg?: boolean,
+) {
+  const res = await getResponse(
+    img,
+    Number(getParam(req, "quality") ?? 5),
+    jpeg ?? false,
+  );
+
+  if (getParam(req, "nocache") !== "true") {
+    CACHE.put(req, res.clone());
+  }
+
+  return res;
 }

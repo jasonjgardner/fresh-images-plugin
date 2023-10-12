@@ -1,16 +1,15 @@
 import type { Plugin } from "$fresh/server.ts";
 import type { PluginRoute } from "$fresh/src/server/types.ts";
 import { join, resolve, toFileUrl } from "$std/path/mod.ts";
-import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
-import { decode, GIF } from "imagescript/mod.ts";
-import type { ImagesPluginOptions } from "./src/types.ts";
-
-export { extendKeyMap, getParam, transform } from "./src/_utils.ts";
-
-/**
- * Cache for transformed images
- */
-const CACHE = await caches.open(`fresh_images-${ASSET_CACHE_BUST_KEY}`);
+import { decode } from "imagescript/mod.ts";
+import type {
+  ImagesPluginOptions,
+  TransformFn,
+  TransformRoute,
+} from "./src/types.ts";
+import { CACHE, getImageResponse, getParam } from "./src/_utils.ts";
+export { extendKeyMap, transform } from "./src/_utils.ts";
+export { getParam };
 
 /**
  * Handle an image transformation request.
@@ -49,29 +48,15 @@ export async function handleImageRequest<T extends string>(
     // Apply each transformation function in order
     const img = await transformFns.reduce(async (acc, xfn) => {
       if (xfn in transformers) {
-        return await transformers[xfn](await acc, req);
+        return typeof transformers[xfn] === "function"
+          ? await (transformers[xfn] as TransformFn)(await acc, req)
+          : await (transformers[xfn] as TransformRoute).handler(await acc, req);
       }
 
       return acc;
     }, decode(data));
 
-    const isGif = img instanceof GIF;
-    const quality = Number(
-      url.searchParams.get("q") ?? url.searchParams.get("quality") ?? 5,
-    );
-    const buffer = await img.encode(
-      Math.min(isGif ? 30 : 3, Math.max(1, quality)),
-    );
-
-    const res = new Response(buffer, {
-      headers: {
-        "content-type": isGif ? "image/gif" : "image/png",
-      },
-    });
-
-    CACHE.put(req, res.clone());
-
-    return res;
+    return await getImageResponse(img, req);
   } catch (err) {
     return new Response(err.message, {
       status: 500,
@@ -108,20 +93,29 @@ export default function ImagesPlugin({
 }: ImagesPluginOptions): Plugin {
   // TODO: Ensure imagePath is not a directory in the ./static folder. Otherwise there will be Fresh routing conflicts.
 
-  // TODO: Allow image transformers to create their own routes
-
-  const routes: PluginRoute[] = [
-    {
-      path: `${route}/[fileName]`,
-      handler: async (req) =>
+  const routes: PluginRoute[] = Object.entries(transformers).map(
+    ([_key, fn]) => {
+      const handler = async (req: Request) =>
         await handleImageRequest(
           transformers,
           req,
           route,
           realPath,
-        ),
+        );
+
+      if (typeof fn === "function") {
+        return ({
+          path: `${route}/[fileName]`,
+          handler,
+        });
+      }
+
+      return {
+        path: `${route}/${fn.path}/[fileName]`,
+        handler,
+      };
     },
-  ];
+  );
 
   return {
     name: "fresh_images",
