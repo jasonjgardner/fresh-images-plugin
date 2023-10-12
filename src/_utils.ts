@@ -10,10 +10,11 @@ import { KEYMAP } from "./transformers/_keymap.ts";
 export function getParam(
   src: Request | URL,
   param: keyof typeof KEYMAP,
+  keyMap?: typeof KEYMAP,
 ): string | null {
   const url = src instanceof URL ? src : new URL(src.url);
-
-  return url.searchParams.get(param) ?? url.searchParams.get(KEYMAP[param]);
+  const km = keyMap ?? KEYMAP;
+  return url.searchParams.get(param) ?? url.searchParams.get(km[param]);
 }
 
 // function createFrameFromImage(img: Image | Frame, duration?: number): Frame {
@@ -50,4 +51,10 @@ export function transform(
   }
 
   return cb(img) as Image;
+}
+
+export function extendKeyMap(
+  keymap: Record<string, string>,
+): typeof KEYMAP {
+  return { ...KEYMAP, ...keymap };
 }

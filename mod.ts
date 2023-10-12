@@ -5,6 +5,8 @@ import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
 import { decode, GIF } from "imagescript/mod.ts";
 import type { ImagesPluginOptions } from "./src/types.ts";
 
+export { extendKeyMap, getParam, transform } from "./src/_utils.ts";
+
 /**
  * Cache for transformed images
  */
