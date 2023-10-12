@@ -27,7 +27,17 @@ export default defineConfig({
   plugins: [
     ImagesPlugin({
       route: "/img",
-      transformers: { resize, rotate, crop, cool: myTransformer },
+      transformers: {
+        resize,
+        rotate,
+        crop,
+        cool: myTransformer,
+        withRoute: {
+          path: "/desaturated",
+          handler: (img: Image | GIF) =>
+            transform(img, (img) => (img as Image).saturation(0.25, true)),
+        },
+      },
     }),
   ],
 });

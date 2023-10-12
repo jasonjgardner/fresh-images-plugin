@@ -13,4 +13,4 @@ export const KEYMAP: UniqueRecord<string, string> = {
   cropStartY: "cy",
   quality: "q",
   noCache: "nocache",
-};
+} as const;

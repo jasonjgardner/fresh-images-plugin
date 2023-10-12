@@ -23,15 +23,6 @@ export function getParam(
   return url.searchParams.get(param) ?? url.searchParams.get(km[param]);
 }
 
-// function createFrameFromImage(img: Image | Frame, duration?: number): Frame {
-//   if (img instanceof Frame) {
-//     return img;
-//   }
-//   const frame = new Frame(img.width, img.height, duration);
-//   frame.bitmap = img.bitmap;
-//   return frame;
-// }
-
 /**
  * Transform an image or each frame of a GIF using a callback.
  * @param img Image or GIF to transform
@@ -43,14 +34,7 @@ export function transform(
   cb = (img: Frame | Image) => img,
 ): Image | GIF {
   if (img instanceof GIF) {
-    // const frames: Frame[] = [];
-
-    // img.forEach((imgFrame) => {
-    //   // TODO: Maintain original duration
-    //   const frame = createFrameFromImage(cb(imgFrame));
-    //   frames.push(frame);
-    // });
-
+    // TODO: Maintain original duration
     const frames = [...img].map(cb) as Frame[];
 
     return new GIF(frames);
@@ -59,12 +43,24 @@ export function transform(
   return cb(img) as Image;
 }
 
+/**
+ * Allow extending the default keymap with custom parameters.
+ * @param keymap Pair of short and full parameter names to extend the default keymap with.
+ * @returns Extended keymap
+ */
 export function extendKeyMap(
   keymap: Record<string, string>,
 ): typeof KEYMAP {
   return { ...KEYMAP, ...keymap };
 }
 
+/**
+ * Get a response for an image transformation request.
+ * @param img Image buffer
+ * @param qualityParam Image output quality
+ * @param returnJpeg Whether to return a JPEG instead of a PNG or GIF. Only the first frame of a GIF will be returned, when this is true.
+ * @returns HTTP response with image buffer and headers.
+ */
 async function getResponse(
   img: Image | GIF,
   qualityParam: number,
@@ -99,6 +95,7 @@ async function getResponse(
  * @param req Request with transformation parameters
  * @param jpeg Whether to return a JPEG instead of a PNG or GIF. Only the first frame of a GIF will be returned, when this is true.
  * @returns Image response with headers.
+ * @uses {@link getResponse}
  */
 export async function getImageResponse(
   img: Image | GIF,

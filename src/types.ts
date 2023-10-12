@@ -17,7 +17,7 @@ export type TransformFn = (
  * A route that maps to a transformation function
  */
 export interface TransformRoute {
-  path: string;
+  path?: string;
   handler: TransformFn;
 }
 

@@ -12,6 +12,41 @@ export { extendKeyMap, transform } from "./src/_utils.ts";
 export { getParam };
 
 /**
+ * Parse a URL for transformation functions to apply. Functions can be passed in the query string or at the start of the path.
+ * @param url Request URL to parse
+ * @param transformers Installed image transformers
+ * @returns List of transformer keys to apply to the image
+ */
+function getTransformerFns(
+  url: URL,
+  transformers: ImagesPluginOptions["transformers"] = {},
+): string[] {
+  const transformFns = url.searchParams.getAll("fn");
+
+  // Parse path for additional transformation functions.
+  // Split the public path and look for matching transformer keys
+  // e.g. /resize/image.jpg?rw=100&rh=100&fn=rotate&rd=90
+
+  for (const key of Object.keys(transformers)) {
+    const value = transformers[key];
+
+    if (typeof value === "function") {
+      continue;
+    }
+
+    if (
+      url.pathname.startsWith(`${value.path}/`)
+    ) {
+      transformFns.push(key);
+      transformers[key] = value;
+      break;
+    }
+  }
+
+  return transformFns;
+}
+
+/**
  * Handle an image transformation request.
  * @param transformers Available image transformations
  * @param req HTTP request
@@ -33,13 +68,14 @@ export async function handleImageRequest<T extends string>(
   }
 
   const url = new URL(req.url);
-  const srcPath = url.pathname.replace(`${publicPath}/`, "");
+  const regex = new RegExp(`^${publicPath}/`);
+  const srcPath = url.pathname.replace(regex, "");
 
   const resourcePath = toFileUrl(
     join(resolve(Deno.cwd(), localPath ?? "./"), srcPath),
   );
 
-  const transformFns = url.searchParams.getAll("fn");
+  const transformFns = getTransformerFns(url, transformers);
 
   try {
     const resource = await fetch(resourcePath);
@@ -47,13 +83,12 @@ export async function handleImageRequest<T extends string>(
 
     // Apply each transformation function in order
     const img = await transformFns.reduce(async (acc, xfn) => {
-      if (xfn in transformers) {
-        return typeof transformers[xfn] === "function"
-          ? await (transformers[xfn] as TransformFn)(await acc, req)
-          : await (transformers[xfn] as TransformRoute).handler(await acc, req);
+      if (!(xfn in transformers)) {
+        return acc;
       }
-
-      return acc;
+      return typeof transformers[xfn] === "function"
+        ? await (transformers[xfn] as TransformFn)(await acc, req)
+        : await (transformers[xfn] as TransformRoute).handler(await acc, req);
     }, decode(data));
 
     return await getImageResponse(img, req);
@@ -94,25 +129,30 @@ export default function ImagesPlugin({
   // TODO: Ensure imagePath is not a directory in the ./static folder. Otherwise there will be Fresh routing conflicts.
 
   const routes: PluginRoute[] = Object.entries(transformers).map(
-    ([_key, fn]) => {
-      const handler = async (req: Request) =>
-        await handleImageRequest(
-          transformers,
-          req,
-          route,
-          realPath,
-        );
-
+    ([key, fn]) => {
       if (typeof fn === "function") {
         return ({
           path: `${route}/[fileName]`,
-          handler,
+          handler: async (req: Request) =>
+            await handleImageRequest(
+              transformers,
+              req,
+              route,
+              realPath,
+            ),
         });
       }
 
       return {
-        path: `${route}/${fn.path}/[fileName]`,
-        handler,
+        path: `${fn.path ?? key}/[fileName]`,
+        handler: async (req: Request) => {
+          return await handleImageRequest(
+            transformers,
+            req,
+            fn.path ?? key,
+            realPath,
+          );
+        },
       };
     },
   );
