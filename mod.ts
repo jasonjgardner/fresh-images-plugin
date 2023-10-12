@@ -1,37 +1,50 @@
 import type { Plugin } from "$fresh/server.ts";
 import type { PluginRoute } from "$fresh/src/server/types.ts";
+import type {
+  ImagesPluginOptions,
+  TransformFn,
+  TransformRoute,
+} from "./src/types.ts";
 import { join, resolve, toFileUrl } from "$std/path/mod.ts";
-import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
-import { decode, GIF, Image } from "imagescript/mod.ts";
+import { decode } from "imagescript/mod.ts";
+import { CACHE, getImageResponse, getParam } from "./src/_utils.ts";
+export { extendKeyMap, transform } from "./src/_utils.ts";
+export { getParam };
 
 /**
- * Options for the Images plugin
+ * Parse a URL for transformation functions to apply. Functions can be passed in the query string or at the start of the path.
+ * @param url Request URL to parse
+ * @param transformers Installed image transformers
+ * @returns List of transformer keys to apply to the image
  */
-export interface ImagesPluginOptions {
-  /**
-   * The route exposed to the client
-   */
-  route?: string;
-  /**
-   * The absolute path to the image file directory
-   */
-  realPath?: string;
-  /**
-   * A map of image transformation functions
-   */
-  transformers?: Record<
-    string,
-    (
-      img: Image | GIF,
-      req: Request,
-    ) => Image | GIF | Promise<Image | GIF>
-  >;
+function getTransformerFns(
+  url: URL,
+  transformers: ImagesPluginOptions["transformers"] = {},
+): string[] {
+  const transformFns = url.searchParams.getAll("fn");
+
+  // Parse path for additional transformation functions.
+  // Split the public path and look for matching transformer keys
+  // e.g. /resize/image.jpg?rw=100&rh=100&fn=rotate&rd=90
+
+  for (const key of Object.keys(transformers)) {
+    const value = transformers[key];
+
+    if (typeof value === "function") {
+      continue;
+    }
+
+    if (
+      url.pathname.startsWith(`${value.path}/`)
+    ) {
+      transformFns.push(key);
+      transformers[key] = value;
+      break;
+    }
+  }
+
+  return transformFns;
 }
-
-/**
- * Cache for transformed images
- */
-const CACHE = await caches.open(`fresh-images-${ASSET_CACHE_BUST_KEY}`);
 
 /**
  * Handle an image transformation request.
@@ -55,13 +68,14 @@ export async function handleImageRequest<T extends string>(
   }
 
   const url = new URL(req.url);
-  const srcPath = url.pathname.replace(`${publicPath}/`, "");
+  const regex = new RegExp(`^${publicPath}/`);
+  const srcPath = url.pathname.replace(regex, "");
 
   const resourcePath = toFileUrl(
     join(resolve(Deno.cwd(), localPath ?? "./"), srcPath),
   );
 
-  const transformFns = url.searchParams.getAll("fn");
+  const transformFns = getTransformerFns(url, transformers);
 
   try {
     const resource = await fetch(resourcePath);
@@ -69,30 +83,15 @@ export async function handleImageRequest<T extends string>(
 
     // Apply each transformation function in order
     const img = await transformFns.reduce(async (acc, xfn) => {
-      if (xfn in transformers) {
-        return await transformers[xfn](await acc, req);
+      if (!(xfn in transformers)) {
+        return acc;
       }
-
-      return acc;
+      return typeof transformers[xfn] === "function"
+        ? await (transformers[xfn] as TransformFn)(await acc, req)
+        : await (transformers[xfn] as TransformRoute).handler(await acc, req);
     }, decode(data));
 
-    const isGif = img instanceof GIF;
-    const quality = Number(
-      url.searchParams.get("q") ?? url.searchParams.get("quality") ?? 5,
-    );
-    const buffer = await img.encode(
-      Math.min(isGif ? 30 : 3, Math.max(1, quality)),
-    );
-
-    const res = new Response(buffer, {
-      headers: {
-        "content-type": isGif ? "image/gif" : "image/png",
-      },
-    });
-
-    CACHE.put(req, res.clone());
-
-    return res;
+    return await getImageResponse(img, req);
   } catch (err) {
     return new Response(err.message, {
       status: 500,
@@ -109,8 +108,8 @@ export async function handleImageRequest<T extends string>(
  * @example
  * ```ts
  * import { defineConfig } from "$fresh/server.ts";
- * import ImagesPlugin from "fresh-images/mod.ts";
- * import { resize } from "fresh-images/transformer.ts";
+ * import ImagesPlugin from "fresh_images/mod.ts";
+ * import { resize } from "fresh_images/transformer.ts";
  *
  * export default defineConfig({
  *   plugins: [
@@ -129,23 +128,37 @@ export default function ImagesPlugin({
 }: ImagesPluginOptions): Plugin {
   // TODO: Ensure imagePath is not a directory in the ./static folder. Otherwise there will be Fresh routing conflicts.
 
-  // TODO: Allow image transformers to create their own routes
+  const routes: PluginRoute[] = Object.entries(transformers).map(
+    ([key, fn]) => {
+      if (typeof fn === "function") {
+        return ({
+          path: `${route}/[fileName]`,
+          handler: async (req: Request) =>
+            await handleImageRequest(
+              transformers,
+              req,
+              route,
+              realPath,
+            ),
+        });
+      }
 
-  const routes: PluginRoute[] = [
-    {
-      path: `${route}/[fileName]`,
-      handler: async (req) =>
-        await handleImageRequest(
-          transformers,
-          req,
-          route,
-          realPath,
-        ),
+      return {
+        path: `${fn.path ?? key}/[fileName]`,
+        handler: async (req: Request) => {
+          return await handleImageRequest(
+            transformers,
+            req,
+            fn.path ?? key,
+            realPath,
+          );
+        },
+      };
     },
-  ];
+  );
 
   return {
-    name: "fresh-images",
+    name: "fresh_images",
     routes,
   };
 }
