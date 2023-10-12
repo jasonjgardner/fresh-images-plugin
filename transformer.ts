@@ -1,13 +1,11 @@
-import {
-  Frame,
-  GIF,
-  Image,
-} from "https://deno.land/x/imagescript@1.2.15/mod.ts";
+import { Frame, GIF, Image } from "imagescript/mod.ts";
 
 export const KEYMAP = {
   degrees: "d",
   height: "h",
   width: "w",
+  cropWidth: "cw",
+  cropHeight: "ch",
 } as const;
 
 /**
@@ -115,4 +113,36 @@ export function rotate(img: Image | GIF, req: Request): Image | GIF {
   }
 
   return img.rotate(Number(degrees)) as Image;
+}
+
+export function crop(img: Image | GIF, req: Request): Image | GIF {
+  const url = new URL(req.url);
+
+  const x = url.searchParams.get("x") ?? 0;
+  const y = url.searchParams.get("y") ?? 0;
+
+  const width = url.searchParams.get("cropWidth") ??
+    url.searchParams.get(KEYMAP.cropWidth) ??
+    Image.RESIZE_AUTO;
+  const height = url.searchParams.get("cropHeight") ??
+    url.searchParams.get(KEYMAP.cropHeight) ??
+    Image.RESIZE_AUTO;
+
+  if (img instanceof GIF) {
+    // Crop each frame and reconstruct the GIF
+    const frames: Frame[] = [];
+
+    img.forEach((imgFrame) => {
+      const frame = new Frame(Number(width), Number(height));
+      frame.bitmap =
+        imgFrame.crop(Number(x), Number(y), Number(width), Number(height))
+          .bitmap;
+
+      frames.push(frame);
+    });
+
+    return new GIF(frames);
+  }
+
+  return img.crop(Number(x), Number(y), Number(width), Number(height));
 }
