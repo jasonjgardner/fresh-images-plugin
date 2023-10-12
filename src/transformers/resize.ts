@@ -31,12 +31,15 @@ import { getParam, transform } from "../_utils.ts";
  * <img src="/img/meow.jpg?fn=resize&resizeWidth=100&resizeHeight=100" alt="Resized to 100px by 100px" />
  * ```
  */
-export default function resize(img: Image | GIF, req: Request): Image | GIF {
+export default function resize(
+  img: Image | GIF,
+  req: Request,
+): Promise<Image | GIF> {
   const url = new URL(req.url);
 
   const width = Number(getParam(url, "resizeWidth") ?? Image.RESIZE_AUTO);
   const height = Number(getParam(url, "resizeHeight") ?? Image.RESIZE_AUTO);
 
   // FIXME: Height must be specified when transforming a GIF
-  return transform(img, (img) => img.resize(width, height));
+  return transform(img, (img) => Promise.resolve(img.resize(width, height)));
 }

@@ -11,7 +11,7 @@ export type UniqueRecord<K extends keyof any, T> = {
 export type TransformFn = (
   img: Image | GIF,
   req: Request,
-) => Image | GIF | Promise<Image | GIF>;
+) => Promise<Image | GIF>;
 
 /**
  * A route that maps to a transformation function

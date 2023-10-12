@@ -27,7 +27,10 @@ import { getParam, transform } from "../_utils.ts";
  * <img src="/img/meow.jpg?fn=rotate&rotateDegrees=-45" alt="Rotated -45 degrees" />
  * ```
  */
-export default function rotate(img: Image | GIF, req: Request): Image | GIF {
+export default function rotate(
+  img: Image | GIF,
+  req: Request,
+): Promise<Image | GIF> {
   const degrees = Number(getParam(req, "rotateDegrees"));
-  return transform(img, (img) => img.rotate(degrees));
+  return transform(img, (img) => Promise.resolve(img.rotate(degrees)));
 }

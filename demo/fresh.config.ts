@@ -17,10 +17,13 @@ const myTransformer = (img: Image | GIF, req: Request) => {
   const invert = getParam(req, "invert", extendKeyMap({ invert: "i" }));
 
   if (invert) {
-    return transform(img, (img) => (img as Image).invertHue());
+    return transform(img, (img) => Promise.resolve((img as Image).invertHue()));
   }
 
-  return transform(img, (img) => (img as Image).hueShift(randomDegrees));
+  return transform(
+    img,
+    (img) => Promise.resolve((img as Image).hueShift(randomDegrees)),
+  );
 };
 
 export default defineConfig({
@@ -35,7 +38,10 @@ export default defineConfig({
         withRoute: {
           path: "/desaturated",
           handler: (img: Image | GIF) =>
-            transform(img, (img) => (img as Image).saturation(0.25, true)),
+            transform(
+              img,
+              (img) => Promise.resolve((img as Image).saturation(0.25, true)),
+            ),
         },
       },
     }),
