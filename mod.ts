@@ -125,9 +125,25 @@ export default function ImagesPlugin({
   route = "/images",
   realPath = "./static/image",
   transformers = {},
+  build,
 }: ImagesPluginOptions): Plugin {
-  // TODO: Ensure imagePath is not a directory in the ./static folder. Otherwise there will be Fresh routing conflicts.
+  try {
+    // Ensure route is not a directory in the ./static folder. Otherwise there will be Fresh routing conflicts.
+    const staticPath = resolve(Deno.cwd(), "./static");
+    const desiredPath = join(staticPath, route);
 
+    if (Deno.statSync(desiredPath).isDirectory) {
+      throw new Error(
+        `The route "${route}" is a directory in the static folder. Please choose a different route.`,
+      );
+    }
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound)) {
+      throw err;
+    }
+  }
+
+  // Compile routes
   const routes: PluginRoute[] = Object.entries(transformers).map(
     ([key, fn]) => {
       if (typeof fn === "function") {
@@ -145,14 +161,13 @@ export default function ImagesPlugin({
 
       return {
         path: `${fn.path ?? key}/[fileName]`,
-        handler: async (req: Request) => {
-          return await handleImageRequest(
+        handler: async (req: Request) =>
+          await handleImageRequest(
             transformers,
             req,
             fn.path ?? key,
             realPath,
-          );
-        },
+          ),
       };
     },
   );
@@ -160,5 +175,18 @@ export default function ImagesPlugin({
   return {
     name: "fresh_images",
     routes,
+    buildStart: () => {
+      if (build) {
+        console.log(
+          "%c 🎞️  Processing images...",
+          "background: #111; color: #f1820b;",
+        );
+        build();
+        console.log(
+          "%c 🖼️  Finished processing images!",
+          "background: #111; color: #77f31d;",
+        );
+      }
+    },
   };
 }

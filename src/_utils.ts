@@ -29,18 +29,20 @@ export function getParam(
  * @param cb Transformation to apply to image or GIF frames
  * @returns Transformed image or GIF
  */
-export function transform(
+export async function transform(
   img: Image | GIF,
-  cb = (img: Frame | Image) => img,
-): Image | GIF {
+  cb = (img: Frame | Image) => Promise.resolve(img),
+): Promise<Image | GIF> {
   if (img instanceof GIF) {
     // TODO: Maintain original duration
-    const frames = [...img].map(cb) as Frame[];
+    const frames = await Promise.all(
+      [...img].map(async (i) => await cb(i)),
+    ) as Frame[];
 
     return new GIF(frames);
   }
 
-  return cb(img) as Image;
+  return await cb(img) as Image;
 }
 
 /**

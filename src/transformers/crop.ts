@@ -26,7 +26,10 @@ import { getParam, transform } from "../_utils.ts";
  * <img src="/img/meow.jpg?fn=crop&cx=100&cy=100&cw=100&ch=100" alt="Cropped to 100px by 100px starting at 100px by 100px" />
  * ```
  */
-export default function crop(img: Image | GIF, req: Request): Image | GIF {
+export default function crop(
+  img: Image | GIF,
+  req: Request,
+): Promise<Image | GIF> {
   const url = new URL(req.url);
 
   // TODO: Support keywords for crop start area (e.g. "center")
@@ -36,5 +39,8 @@ export default function crop(img: Image | GIF, req: Request): Image | GIF {
   const width = Number(getParam(url, "cropWidth") ?? Image.RESIZE_AUTO);
   const height = Number(getParam(url, "cropHeight") ?? Image.RESIZE_AUTO);
 
-  return transform(img, (img) => img.crop(x, y, width, height));
+  return transform(
+    img,
+    (img) => Promise.resolve(img.crop(x, y, width, height)),
+  );
 }
