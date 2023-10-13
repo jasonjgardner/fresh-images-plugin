@@ -40,4 +40,9 @@ export interface ImagesPluginOptions {
     string,
     TransformFn | TransformRoute
   >;
+
+  /**
+   * Ahead of time build function
+   */
+  build?: () => Promise<void>;
 }
