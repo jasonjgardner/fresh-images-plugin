@@ -7,7 +7,7 @@ import type {
 } from "./src/types.ts";
 import { join, resolve, toFileUrl } from "$std/path/mod.ts";
 import { decode } from "imagescript/mod.ts";
-import { CACHE, getImageResponse, getParam } from "./src/_utils.ts";
+import { getImageResponse, getParam } from "./src/_utils.ts";
 export { extendKeyMap, transform } from "./src/_utils.ts";
 export { getParam };
 
@@ -60,12 +60,12 @@ export async function handleImageRequest<T extends string>(
   publicPath: T,
   localPath?: string,
 ): Promise<Response> {
-  const cached = await CACHE.match(req);
+  // const cached = await CACHE.match(req);
 
-  if (cached) {
-    cached.headers.set("x-cache-hit", "true");
-    return cached;
-  }
+  // if (cached) {
+  //   cached.headers.set("x-cache-hit", "true");
+  //   return cached;
+  // }
 
   const url = new URL(req.url);
   const regex = new RegExp(`^${publicPath}/`);
