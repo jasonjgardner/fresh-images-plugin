@@ -8,7 +8,8 @@ Inspired by [nuxt/image](https://github.com/nuxt/image) and
 
 ## Demo
 
-A working demo is deployed at https://fresh-images.deno.dev.\
+A working demo is deployed at https://fresh-images.deno.dev.
+
 **([View source](https://github.com/jasonjgardner/fresh-images-demo))**
 
 ## Install
@@ -88,7 +89,7 @@ import { decode, type GIF, type Image } from "imagescript/mod.ts";
  * Rotate an image hue by a random number of degrees.
  * Optionally accept a query parameter to invert the hue.
  */
-const myTransformer = (img: Image | GIF, req: Request) => {
+const myTransformer = async (img: Image | GIF, req: Request) => {
   const randomDegrees = Math.floor(Math.random() * 360);
 
   // Use `extendKeyMap` to lookup custom parameters
