@@ -8,8 +8,11 @@ import type {
 import { join, resolve, toFileUrl } from "$std/path/mod.ts";
 import { decode } from "imagescript/mod.ts";
 import { getImageResponse, getParam } from "./src/_utils.ts";
+import { getCache } from "./src/server.ts";
 export { extendKeyMap, transform } from "./src/_utils.ts";
 export { getParam };
+
+const cache = await getCache();
 
 /**
  * Parse a URL for transformation functions to apply. Functions can be passed in the query string or at the start of the path.
@@ -60,12 +63,11 @@ export async function handleImageRequest<T extends string>(
   publicPath: T,
   localPath?: string,
 ): Promise<Response> {
-  // const cached = await CACHE.match(req);
+  const cached = await cache.get(req);
 
-  // if (cached) {
-  //   cached.headers.set("x-cache-hit", "true");
-  //   return cached;
-  // }
+  if (cached) {
+    return cached;
+  }
 
   const url = new URL(req.url);
   const regex = new RegExp(`^${publicPath}/`);
@@ -91,8 +93,13 @@ export async function handleImageRequest<T extends string>(
         : await (transformers[xfn] as TransformRoute).handler(await acc, req);
     }, decode(data));
 
-    return await getImageResponse(img, req);
+    const res = await getImageResponse(img, req);
+
+    await cache.put(req, res);
+
+    return res;
   } catch (err) {
+    // TODO: Add option to respond with error images
     return new Response(err.message, {
       status: 500,
     });
@@ -176,17 +183,22 @@ export default function ImagesPlugin({
     name: "fresh_images",
     routes,
     buildStart: () => {
-      if (build) {
-        console.log(
-          "%c 🎞️  Processing images...",
-          "background: #111; color: #f1820b;",
-        );
-        build();
-        console.log(
-          "%c 🖼️  Finished processing images!",
-          "background: #111; color: #77f31d;",
-        );
+      if (!build) {
+        return;
       }
+      console.log(
+        "%c 🎞️  Processing images...",
+        "background: #111; color: #f1820b;",
+      );
+      build({
+        route,
+        realPath,
+        transformers,
+      });
+      console.log(
+        "%c 🖼️  Finished processing images!",
+        "background: #111; color: #77f31d;",
+      );
     },
   };
 }
