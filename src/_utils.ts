@@ -1,11 +1,5 @@
 import { Frame, GIF, Image } from "imagescript/mod.ts";
 import { KEYMAP } from "./transformers/_keymap.ts";
-// import { ASSET_CACHE_BUST_KEY } from "$fresh/runtime.ts";
-
-/**
- * Cache for transformed images
- */
-// export const CACHE = await caches.open(`fresh_images-${ASSET_CACHE_BUST_KEY}`);
 
 /**
  * Get a parameter from a URL or request.

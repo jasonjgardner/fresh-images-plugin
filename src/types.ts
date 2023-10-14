@@ -44,5 +44,5 @@ export interface ImagesPluginOptions {
   /**
    * Ahead of time build function
    */
-  build?: () => Promise<void>;
+  build?: (props: Omit<ImagesPluginOptions, "build">) => Promise<void>;
 }
