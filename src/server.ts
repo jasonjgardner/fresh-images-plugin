@@ -105,7 +105,7 @@ export class CacheKV implements ICache {
     const headers = new Headers();
 
     if (storedHeaders) {
-      for (const [key, value] of Object.entries(storedHeaders)) {
+      for (const [key, value] of Object.entries(storedHeaders.value ?? {})) {
         headers.set(key, value?.toString() ?? "");
       }
     }
