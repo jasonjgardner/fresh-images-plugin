@@ -31,13 +31,16 @@ export class CacheStore implements ICache {
 
     const cached = await this.cache.match(req);
 
-    if (cached && Deno.env.get("FRESH_IMAGES_USE_HEADERS") !== "false") {
-      cached.headers.set("x-fresh-images-cache-hit", "true");
-      cached.headers.set("x-fresh-images-kv-hit", "false");
-      return cached;
+    if (!cached) {
+      return undefined;
     }
 
-    return undefined;
+    if (Deno.env.get("FRESH_IMAGES_USE_HEADERS") !== "false") {
+      cached.headers.set("x-fresh-images-cache-hit", "true");
+      cached.headers.set("x-fresh-images-kv-hit", "false");
+    }
+
+    return cached;
   }
 
   async put(req: Request, res: Response) {
@@ -88,6 +91,7 @@ export class CacheKV implements ICache {
     }
 
     const data: Uint8Array | null = await get(this.kv, [
+      "fresh_images",
       "data",
       ASSET_CACHE_BUST_KEY,
       req.url,
@@ -98,6 +102,7 @@ export class CacheKV implements ICache {
     }
 
     const storedHeaders = await this.kv.get<Headers>([
+      "fresh_images",
       "headers",
       ASSET_CACHE_BUST_KEY,
       req.url,
@@ -216,6 +221,7 @@ export class CacheNoop implements ICache {
  */
 export async function getCache(): Promise<ICache> {
   if (Deno.env.get("FRESH_IMAGES_USE_CACHE") === "false") {
+    console.log("Cache disabled");
     return new CacheNoop();
   }
 

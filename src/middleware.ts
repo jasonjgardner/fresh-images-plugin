@@ -27,7 +27,7 @@ async function rateLimit(
   const key = ["fresh_images", "rate-limit", ip];
   await kv.atomic()
     .check({ key, versionstamp: null })
-    .set(key, 0, {
+    .set(key, new Deno.KvU64(0n), {
       expireIn,
     })
     .commit();
@@ -49,7 +49,7 @@ async function rateLimit(
   const response = await ctx.next();
 
   if (Deno.env.get("FRESH_IMAGE_USE_HEADERS") !== "false") {
-    response.headers.set("x-rate-limit", difference.toString());
+    response.headers.set("x-fresh-image-rate-limit", difference.toString());
   }
   return response;
 }
@@ -76,7 +76,7 @@ export async function handler(
   }
 
   // Enforce rate limiting (Requires Deno KV)
-  if (Deno.env.get("FRESH_IMAGE_USE_KV") === "true" && settings?.rateLimit) {
+  if (Deno.env.get("FRESH_IMAGES_USE_KV") === "true" && settings?.rateLimit) {
     return await rateLimit(
       req,
       ctx,

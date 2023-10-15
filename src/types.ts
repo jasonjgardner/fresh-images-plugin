@@ -26,7 +26,8 @@ export interface TransformRoute {
  */
 export interface ImageMiddlewareOptions {
   /**
-   * The maximum number of concurrent image requests from a single IP address
+   * The maximum number of concurrent image requests from a single IP address.
+   * (This should be set high enough to serve all images at least once.)
    */
   rateLimit: number;
   /**
