@@ -1,5 +1,9 @@
-import type { Plugin } from "$fresh/server.ts";
-import type { PluginRoute } from "$fresh/src/server/types.ts";
+import type {
+  MiddlewareHandlerContext,
+  Plugin,
+  PluginMiddleware,
+  PluginRoute,
+} from "$fresh/src/server/types.ts";
 import type {
   ImagesPluginOptions,
   TransformFn,
@@ -9,6 +13,7 @@ import { join, resolve, toFileUrl } from "$std/path/mod.ts";
 import { decode } from "imagescript/mod.ts";
 import { getImageResponse, getParam } from "./src/_utils.ts";
 import { getCache } from "./src/server.ts";
+import { handler } from "./src/middleware.ts";
 export { extendKeyMap, transform } from "./src/_utils.ts";
 export { getParam };
 
@@ -133,6 +138,7 @@ export default function ImagesPlugin({
   realPath = "./static/image",
   transformers = {},
   build,
+  middleware,
 }: ImagesPluginOptions): Plugin {
   try {
     // Ensure route is not a directory in the ./static folder. Otherwise there will be Fresh routing conflicts.
@@ -150,10 +156,21 @@ export default function ImagesPlugin({
     }
   }
 
+  const middlewares: PluginMiddleware[] = [];
+
   // Compile routes
   const routes: PluginRoute[] = Object.entries(transformers).map(
     ([key, fn]) => {
       if (typeof fn === "function") {
+        middlewares.push({
+          path: `${route}/[fileName]`,
+          middleware: {
+            // Pass middleware settings to the handlers
+            handler: (req: Request, ctx: MiddlewareHandlerContext) =>
+              handler(req, ctx, middleware),
+          },
+        });
+
         return ({
           path: `${route}/[fileName]`,
           handler: async (req: Request) =>
@@ -165,6 +182,14 @@ export default function ImagesPlugin({
             ),
         });
       }
+
+      middlewares.push({
+        path: `${fn.path ?? key}/[fileName]`,
+        middleware: {
+          handler: (req: Request, ctx: MiddlewareHandlerContext) =>
+            handler(req, ctx, middleware),
+        },
+      });
 
       return {
         path: `${fn.path ?? key}/[fileName]`,
@@ -182,6 +207,7 @@ export default function ImagesPlugin({
   return {
     name: "fresh_images",
     routes,
+    middlewares,
     buildStart: () => {
       if (!build) {
         return;
