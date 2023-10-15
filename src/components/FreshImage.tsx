@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { Head, IS_BROWSER } from "$fresh/runtime.ts";
 import { asset } from "../runtime.ts";
@@ -43,8 +44,16 @@ export interface FreshImageProps extends JSX.HTMLAttributes<HTMLImageElement> {
 export default function FreshImage(
   props: FreshImageProps,
 ) {
-  const { src, alt, preload, onLoad, transformations, placeholder, ...rest } =
-    props;
+  const {
+    src,
+    alt,
+    preload,
+    onLoad,
+    transformations,
+    placeholder,
+    class: className,
+    ...rest
+  } = props;
 
   // Apply transformations to the image URL, or use the original URL if no transformations are provided.
   const xformSrc = transformations ? asset(src, transformations) : asset(src);
@@ -58,10 +67,11 @@ export default function FreshImage(
     );
   }
 
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const isLoaded = useSignal(false);
 
   return (
-    <div class="fresh-image">
+    <div class={`fresh-image ${className}`}>
       {placeholder !== undefined && IS_BROWSER && !isLoaded.value && (
         <img class="fresh-image__placeholder" src={placeholder} alt={alt} />
       )}
@@ -71,9 +81,18 @@ export default function FreshImage(
         alt={alt}
         onLoad={() => {
           isLoaded.value = true;
+
+          if (imgRef.current) {
+            imgRef.current.width = imgRef.current.width ??
+              imgRef.current.naturalWidth;
+            imgRef.current.height = imgRef.current.height ??
+              imgRef.current.naturalHeight;
+          }
+
           onLoad?.();
         }}
         {...rest}
+        ref={imgRef}
       />
     </div>
   );
