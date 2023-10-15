@@ -86,7 +86,7 @@ async function getResponse(
 }
 
 /**
- * Get a response for an image request, optionally caching the response.
+ * Get a response for an image request
  * @param img Image buffer
  * @param req Request with transformation parameters
  * @param jpeg Whether to return a JPEG instead of a PNG or GIF. Only the first frame of a GIF will be returned, when this is true.
@@ -103,10 +103,6 @@ export async function getImageResponse(
     Number(getParam(req, "quality") ?? 5),
     jpeg ?? false,
   );
-
-  if (getParam(req, "nocache") !== "true") {
-    // CACHE.put(req, res.clone());
-  }
 
   return res;
 }

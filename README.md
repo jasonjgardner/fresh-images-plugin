@@ -231,16 +231,15 @@ caution**. Deno KV is not an ideal blob storage solution and comes with certain
 
 #### Environment Variables
 
-- `USE_CACHE` – Enables image caching via
+- `FRESH_IMAGES_USE_CACHE` – Enables image caching via
   [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache) (when
   available) or Deno KV.
-- `USE_KV` — When `USE_CACHE` is `true`, setting this variable to `true` will
-  cache images using [kv_toolbox](https://deno.land/x/kv_toolbox@0.0.5)
+- `FRESH_IMAGES_USE_KV` — When `FRESH_IMAGES_USE_CACHE` is `true`, setting this
+  variable to `true` will cache images using
+  [kv_toolbox](https://deno.land/x/kv_toolbox@0.0.5)
 
-If `USE_CACHE=true` and `USE_KV=false`, caching will not be used on Deno Deploy.
-
-![Deno Deploy environment variables example](https://github.com/jasonjgardner/fresh-images-plugin/assets/1903667/9dbf8abb-5844-4ac1-8ef6-4d3f48242ccd "Deno Deploy project settings")
-
+If `FRESH_IMAGES_USE_CACHE=true` and `FRESH_IMAGES_USE_KV=false`, caching will
+not be used on Deno Deploy.
 
 ## Optional Build Step
 

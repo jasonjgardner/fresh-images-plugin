@@ -31,9 +31,9 @@ export class CacheStore implements ICache {
 
     const cached = await this.cache.match(req);
 
-    if (cached) {
-      cached.headers.set("x-cache-hit", "true");
-      cached.headers.set("x-kv-hit", "false");
+    if (cached && Deno.env.get("FRESH_IMAGES_USE_HEADERS") !== "false") {
+      cached.headers.set("x-fresh-images-cache-hit", "true");
+      cached.headers.set("x-fresh-images-kv-hit", "false");
       return cached;
     }
 
@@ -114,8 +114,10 @@ export class CacheKV implements ICache {
       headers.set("content-type", "image/png");
     }
 
-    headers.set("x-cache-hit", "true");
-    headers.set("x-kv-hit", "true");
+    if (Deno.env.get("FRESH_IMAGES_USE_HEADERS") !== "false") {
+      headers.set("x-fresh-images-cache-hit", "true");
+      headers.set("x-fresh-images-kv-hit", "true");
+    }
 
     return new Response(data, { headers });
   }
@@ -133,9 +135,13 @@ export class CacheKV implements ICache {
       storedHeaders[key] = value;
     }
 
-    await set(this.kv, ["data", ASSET_CACHE_BUST_KEY, req.url], data);
+    await set(
+      this.kv,
+      ["fresh_images", "data", ASSET_CACHE_BUST_KEY, req.url],
+      data,
+    );
     await this.kv.set(
-      ["headers", ASSET_CACHE_BUST_KEY, req.url],
+      ["fresh_images", "headers", ASSET_CACHE_BUST_KEY, req.url],
       storedHeaders,
     );
   }
@@ -145,8 +151,18 @@ export class CacheKV implements ICache {
       throw new Error("KV API not available");
     }
 
-    await this.kv.delete(["data", ASSET_CACHE_BUST_KEY, req.url]);
-    await this.kv.delete(["headers", ASSET_CACHE_BUST_KEY, req.url]);
+    await this.kv.delete([
+      "fresh_images",
+      "data",
+      ASSET_CACHE_BUST_KEY,
+      req.url,
+    ]);
+    await this.kv.delete([
+      "fresh_images",
+      "headers",
+      ASSET_CACHE_BUST_KEY,
+      req.url,
+    ]);
   }
 
   async clearOldCache() {
@@ -154,20 +170,20 @@ export class CacheKV implements ICache {
       throw new Error("KV API not available");
     }
 
-    const keys = await this.kv.get(["data"]);
+    const keys = await this.kv.get(["fresh_images", "data"]);
 
     if (!keys) {
       return;
     }
 
-    const ok = Object.keys(keys);
+    const ok = Object.keys(keys.value ?? {});
     for (const key of ok) {
       if (key === ASSET_CACHE_BUST_KEY) {
         continue;
       }
 
-      await this.kv.delete(["data", key]);
-      await this.kv.delete(["headers", key]);
+      await this.kv.delete(["fresh_images", "data", key]);
+      await this.kv.delete(["fresh_images", "headers", key]);
       console.log("Deleted old cache: %s", key);
     }
   }
@@ -199,12 +215,12 @@ export class CacheNoop implements ICache {
  * @returns A cache interface determined by the environment.
  */
 export async function getCache(): Promise<ICache> {
-  if (Deno.env.get("USE_CACHE") === "false") {
+  if (Deno.env.get("FRESH_IMAGES_USE_CACHE") === "false") {
     return new CacheNoop();
   }
 
   let cache: ICache | undefined = undefined;
-  let useKv = Deno.env.get("USE_KV") !== "false";
+  let useKv = Deno.env.get("FRESH_IMAGES_USE_KV") !== "false";
 
   if (Deno.env.get("DENO_DEPLOYMENT_ID")) {
     useKv = useKv !== false;
@@ -216,7 +232,7 @@ export async function getCache(): Promise<ICache> {
 
     return cache;
   } catch (err) {
-    console.error("Cache not available: %s", err);
+    console.error("Cache not available: %s\n", err);
   }
 
   return new CacheNoop();
