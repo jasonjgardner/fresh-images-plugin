@@ -223,8 +223,8 @@ import FreshImage from "fresh_images/src/components/FreshImage.tsx";
 ### Caching
 
 Deno Deploy
-[currently does not support the Cache API](https://docs.deno.com/deploy/api#future-support),
-but Deno KV can be utilized to serve cached images. Set the following
+[currently does not support the Cache API](https://docs.deno.com/deploy/api#future-support);
+however, Deno KV can be utilized to serve cached images. Set the following
 environment variables to enable caching in Deno Deploy, but **use with
 caution**. Deno KV is not an ideal blob storage solution and comes with certain
 [costs and limitations](https://deno.com/deploy/pricing).
@@ -238,6 +238,9 @@ caution**. Deno KV is not an ideal blob storage solution and comes with certain
   cache images using [kv_toolbox](https://deno.land/x/kv_toolbox@0.0.5)
 
 If `USE_CACHE=true` and `USE_KV=false`, caching will not be used on Deno Deploy.
+
+![Deno Deploy environment variables example](https://github.com/jasonjgardner/fresh-images-plugin/assets/1903667/9dbf8abb-5844-4ac1-8ef6-4d3f48242ccd "Deno Deploy project settings")
+
 
 ## Optional Build Step
 
