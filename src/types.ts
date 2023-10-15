@@ -22,6 +22,21 @@ export interface TransformRoute {
 }
 
 /**
+ * Options for the image middleware
+ */
+export interface ImageMiddlewareOptions {
+  /**
+   * The maximum number of concurrent image requests from a single IP address.
+   * (This should be set high enough to serve all images at least once.)
+   */
+  rateLimit: number;
+  /**
+   * The duration of the rate limit in milliseconds. Used as KV TTL.
+   */
+  rateLimitDuration: number;
+}
+
+/**
  * Options for the Images plugin
  */
 export interface ImagesPluginOptions {
@@ -45,4 +60,9 @@ export interface ImagesPluginOptions {
    * Ahead of time build function
    */
   build?: (props: Omit<ImagesPluginOptions, "build">) => Promise<void>;
+
+  /**
+   * Options for the image middleware
+   */
+  middleware?: Partial<ImageMiddlewareOptions>;
 }
