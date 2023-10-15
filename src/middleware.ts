@@ -49,7 +49,7 @@ async function rateLimit(
   const response = await ctx.next();
 
   if (Deno.env.get("FRESH_IMAGE_USE_HEADERS") !== "false") {
-    response.headers.set("x-fresh-image-rate-limit", difference.toString());
+    response.headers.set("x-fresh-images-rate-limit", difference.toString());
   }
   return response;
 }
