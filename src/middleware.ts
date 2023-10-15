@@ -20,9 +20,15 @@ async function rateLimit(
     throw new Error("Deno KV must be enabled to use rate limiting.");
   }
 
-  const kv = await Deno.openKv();
   const ip = req.headers.get("x-forwarded-for") ||
     req.headers.get("x-real-ip") || ctx.remoteAddr.hostname;
+
+  // Allow localhost to bypass rate limiting
+  if (ip === "127.0.0.1") {
+    return await ctx.next();
+  }
+
+  const kv = await Deno.openKv();
 
   const key = ["fresh_images", "rate-limit", ip];
   await kv.atomic()
