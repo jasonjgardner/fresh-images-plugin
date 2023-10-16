@@ -4,13 +4,15 @@ import type { UniqueRecord } from "../types.ts";
  * Keys and values should be unique.
  */
 export const KEYMAP: UniqueRecord<string, string> = {
-  rotateDegrees: "rd",
-  resizeHeight: "rh",
-  resizeWidth: "rw",
+  blurRadius: "br",
+  blurSigma: "bs",
   cropWidth: "cw",
   cropHeight: "ch",
   cropStartX: "cx",
   cropStartY: "cy",
-  quality: "q",
   noCache: "nocache",
+  rotateDegrees: "rd",
+  resizeHeight: "rh",
+  resizeWidth: "rw",
+  quality: "q",
 } as const;
