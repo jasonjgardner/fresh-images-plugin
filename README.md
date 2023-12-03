@@ -1,3 +1,5 @@
+> **This project is no longer maintained.** Switch to [aleph.js](https://github.com/alephjs/aleph.js)
+
 # Fresh Images
 
 **Image manipulation and optimization for
